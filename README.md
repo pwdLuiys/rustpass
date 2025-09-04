@@ -55,13 +55,13 @@ cargo run -- add --master "your-master-password" --name "gmail" --username "me@g
 
 ```
 List entrie
-
+```bash
 cargo run -- list --master "your-master-password"
-
+```
 Get a entrie (this allow u to see the passwords in the list [reveals them])
-
+```bash
 cargo run -- get --master "your-master-password" --name "gmail"
-
+```
 
 
 
