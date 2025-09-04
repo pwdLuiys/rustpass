@@ -22,28 +22,29 @@ Clone the repository:
 ```bash
 git clone https://github.com/YOUR_USERNAME/rustpass.git
 cd rustpass
-
+```bash
 Build: 
 
 ```bash
 cargo build --release
-
+```bash
 The binary will be generated at:
 
 ```bash
 target/release/rustpass
-
+```bash
 (Optional) Move it to your PATH:
 
-```bashsudo mv target/release/rustpass /usr/local/bin/ (Linux)
-
+```bash
+sudo mv target/release/rustpass /usr/local/bin/ (Linux)
+```bash
 🖥️ Usage
 
 Run the program:
 
 ```bash
 cargo run
-
+```bash
 You’ll see the main menu:
 
 ```bash
@@ -53,7 +54,7 @@ RustPass - Minimalist Password Manager
 3) List entries
 4) Save vault
 5) Exit
-
+```bash
 🔑 1. Initialize vault
 
 Creates a new encrypted vault protected by your master password.
@@ -89,7 +90,7 @@ Default paths:
 ```bash
 ~/.local/share/RustPass/vault.cbor
 ~/.local/share/RustPass/salt.bin
-
+```bash
 🧪 Testing
 
 Run tests (future support planned):
