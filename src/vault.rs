@@ -111,16 +111,19 @@ pub fn find_entry<'a>(vault: &'a VaultV1, name: &str) -> Option<&'a crate::model
     vault.entries.iter().find(|e| e.name.eq_ignore_ascii_case(name))
 }
 
+#[allow(dead_code)]
 pub fn find_entry_mut<'a>(vault: &'a mut VaultV1, name: &str) -> Option<&'a mut crate::model::Entry> {
     vault.entries.iter_mut().find(|e| e.name.eq_ignore_ascii_case(name))
 }
 
+#[allow(dead_code)]
 pub fn remove_entry(vault: &mut VaultV1, name: &str) -> bool {
     let len_before = vault.entries.len();
     vault.entries.retain(|e| !e.name.eq_ignore_ascii_case(name));
     len_before != vault.entries.len()
 }
 
+#[allow(dead_code)]
 pub fn edit_entry(vault: &mut VaultV1, name: &str, new_entry: crate::model::Entry) -> bool {
     if let Some(entry) = find_entry_mut(vault, name) {
         *entry = new_entry;
