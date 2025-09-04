@@ -20,14 +20,14 @@ fn prompt_password(msg: &str) -> String {
 }
 
 fn main() -> Result<()> {
-    println!("RustPass - Gerenciador de Senhas Minimalista");
-    println!("1) Inicializar cofre");
-    println!("2) Adicionar entrada");
-    println!("3) Listar entradas");
-    println!("4) Salvar cofre");
-    println!("5) Sair");
+    println!("RustPass - Minimalist Password Manager");
+    println!("1) Initialize vault");
+    println!("2) Add entry");
+    println!("3) List entries");
+    println!("4) Save vault");
+    println!("5) Exit");
 
-    let master = prompt_password("Digite a senha mestra: ");
+    let master = prompt_password("Enter master password: ");
 
     let mut vault: Option<VaultV1> = match vault::load(&master) {
         Ok(v) => Some(v),
@@ -36,23 +36,23 @@ fn main() -> Result<()> {
     };
 
     loop {
-        let choice = prompt("Escolha uma opção: ");
+        let choice = prompt("Choose an option: ");
         match choice.as_str() {
             "1" => {
                 vault::init(&master)?;
-                println!("Cofre inicializado.");
+                println!("Vault initialized.");
                 vault = Some(vault::load(&master)?);
             }
             "2" => {
                 if vault.is_none() {
-                    println!("Cofre não inicializado. Inicialize primeiro (opção 1).");
+                    println!("Vault not initialized. Please initialize first (option 1).");
                     continue;
                 }
                 let mut v = vault.take().unwrap();
-                let name = prompt("Nome da entrada: ");
-                let username = prompt("Usuário: ");
-                let password = prompt_password("Senha: ");
-                let notes = prompt("Notas (opcional): ");
+                let name = prompt("Entry name: ");
+                let username = prompt("Username: ");
+                let password = prompt_password("Password: ");
+                let notes = prompt("Notes (optional): ");
                 let entry = Entry {
                     name,
                     username,
@@ -62,36 +62,36 @@ fn main() -> Result<()> {
                 v.entries.push(entry);
                 v.last_modified = Utc::now();
                 vault::save(&master, &v)?;
-                println!("Entrada adicionada.");
+                println!("Entry added.");
                 vault = Some(v);
             }
             "3" => {
                 if vault.is_none() {
-                    println!("Cofre não inicializado. Inicialize primeiro (opção 1).");
+                    println!("Vault not initialized. Please initialize first (option 1).");
                     continue;
                 }
                 let v = vault.as_ref().unwrap();
                 for (i, entry) in v.entries.iter().enumerate() {
                     println!("{}: {} / {} / {}", i+1, entry.name, entry.username, entry.password);
                     if let Some(notes) = &entry.notes {
-                        println!("   Notas: {}", notes);
+                        println!("   Notes: {}", notes);
                     }
                 }
             }
             "4" => {
                 if vault.is_none() {
-                    println!("Cofre não inicializado. Inicialize primeiro (opção 1).");
+                    println!("Vault not initialized. Please initialize first (option 1).");
                     continue;
                 }
                 let v = vault.as_ref().unwrap();
                 vault::save(&master, v)?;
-                println!("Cofre salvo.");
+                println!("Vault saved.");
             }
             "5" => {
-                println!("Saindo...");
+                println!("Exiting...");
                 break;
             }
-            _ => println!("Opção inválida."),
+            _ => println!("Invalid option."),
         }
     }
     Ok(())
