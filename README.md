@@ -20,7 +20,7 @@ A **minimalist password manager** written in Rust, inspired by Bitwarden and oth
 Clone the repository:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/rustpass.git
+git clone https://github.com/pwdLuiys/rustpass
 cd rustpass
 ```
 
