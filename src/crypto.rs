@@ -1,9 +1,7 @@
-use aes_gcm::KeyInit;
 use argon2::{Argon2};
 use rand::RngCore;
 use chacha20poly1305::{
-    XChaCha20Poly1305, Key, XNonce,
-    aead::{Aead}
+    aead::Aead, Key, KeyInit, XChaCha20Poly1305, XNonce
 };
 
 pub fn derive_key(master: &str, salt: &[u8]) -> [u8; 32] {
@@ -25,6 +23,6 @@ pub fn decrypt(key: &[u8; 32], ciphertext: &[u8], nonce: &[u8; 24]) -> anyhow::R
     let cipher = XChaCha20Poly1305::new(Key::from_slice(key));
     let plaintext = cipher
         .decrypt(XNonce::from_slice(nonce), ciphertext)
-        .map_err(|e| anyhow::anyhow!("Decryption failed: {:?}", e))?;
+        .map_err(|_| anyhow::anyhow!("Failed to decrypt vault: Incorrect master password or corrupted vault."))?;
     Ok(plaintext)
 }

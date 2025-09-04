@@ -62,7 +62,7 @@ pub fn init(master: &str) -> Result<()> {
 pub fn load(master: &str) -> Result<VaultV1> {
     let salt_file = salt_path()?;
     if !salt_file.exists() {
-        anyhow::bail!("VaultNotInitialized");
+        anyhow::bail!("Vault not found. Please initialize your vault first (option 1).");
     }
     let mut salt = [0u8; 16];
     File::open(salt_file)?.read_exact(&mut salt)?;
@@ -71,7 +71,7 @@ pub fn load(master: &str) -> Result<VaultV1> {
 
     let vault_file = vault_path()?;
     if !vault_file.exists() {
-        anyhow::bail!("VaultNotInitialized");
+        anyhow::bail!("Vault not found. Please initialize your vault first (option 1).");
     }
     let mut vault_data = Vec::new();
     File::open(vault_file)?.read_to_end(&mut vault_data)?;
@@ -105,4 +105,27 @@ pub fn save(master: &str, vault: &VaultV1) -> Result<()> {
     f.write_all(&vault_data)?;
 
     Ok(())
+}
+
+pub fn find_entry<'a>(vault: &'a VaultV1, name: &str) -> Option<&'a crate::model::Entry> {
+    vault.entries.iter().find(|e| e.name.eq_ignore_ascii_case(name))
+}
+
+pub fn find_entry_mut<'a>(vault: &'a mut VaultV1, name: &str) -> Option<&'a mut crate::model::Entry> {
+    vault.entries.iter_mut().find(|e| e.name.eq_ignore_ascii_case(name))
+}
+
+pub fn remove_entry(vault: &mut VaultV1, name: &str) -> bool {
+    let len_before = vault.entries.len();
+    vault.entries.retain(|e| !e.name.eq_ignore_ascii_case(name));
+    len_before != vault.entries.len()
+}
+
+pub fn edit_entry(vault: &mut VaultV1, name: &str, new_entry: crate::model::Entry) -> bool {
+    if let Some(entry) = find_entry_mut(vault, name) {
+        *entry = new_entry;
+        true
+    } else {
+        false
+    }
 }
