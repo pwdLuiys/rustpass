@@ -63,8 +63,25 @@ A secure, cross-platform CLI password manager inspired by Bitwarden and ProtonPa
 
 ### Build from source
 
-You can also build from source with Rust:
+You can build from source with Rust:
 
+### First, on windows do
+```sh
+winget install --id=Rustlang.Rustup  -e
+```
+
+### First, on Linux do 
+
+```sh
+paru -S rustup
+or
+yay -S rustup
+or
+sudo pacman -S rustup
+
+```
+
+### Now you can clone!!
 ```sh
 git clone https://github.com/pwdLuiys/rustpass.git
 cd rustpass
