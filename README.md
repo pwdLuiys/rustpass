@@ -54,20 +54,25 @@ A secure, cross-platform CLI password manager.
 
 ## Installation
 
-### FOR WINDOWS
-
-*You have to add 'rustpass' PATH on your pc.*
-#### [How to do that?](https://superuser.com/questions/1861276/how-to-set-a-folder-to-the-path-environment-variable-in-windows-11)
-
 
 ### Build from source
 
 You can build from source with Rust:
+### Clone
+```sh
+git clone https://github.com/pwdLuiys/rustpass.git
+cd rustpass
+cargo build --release
+```
 
 ### First, on windows do
 ```sh
 winget install --id=Rustlang.Rustup  -e
 ```
+### FOR WINDOWS
+
+*You have to add 'rustpass' PATH on your pc.* (Default path to rustpass on windows is on C drive /Users/YOUR USER/rustpass) (After clone the repository)
+#### [How to do that?](https://superuser.com/questions/1861276/how-to-set-a-folder-to-the-path-environment-variable-in-windows-11)
 
 ### First, on Linux do 
 
@@ -78,13 +83,6 @@ yay -S rustup
 or
 sudo pacman -S rustup
 
-```
-
-### Now you can clone!!
-```sh
-git clone https://github.com/pwdLuiys/rustpass.git
-cd rustpass
-cargo build --release
 ```
 
 ## Example workflow
