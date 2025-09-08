@@ -55,15 +55,11 @@ A secure, cross-platform CLI password manager inspired by Bitwarden and ProtonPa
 
 ## Installation
 
-### Download prebuilt binaries
+### FOR WINDOWS
 
-Go to [GitHub Releases](https://github.com/pwdLuiys/rustpass/releases) and download the binary for your platform:
+*You have to add 'rustpass' PATH on your pc.*
+#### How to do that? <a id='https://superuser.com/questions/1861276/how-to-set-a-folder-to-the-path-environment-variable-in-windows-11'></a>
 
-- `rustpass-x86_64-unknown-linux-gnu.tar.gz` (Linux)
-- `rustpass-x86_64-apple-darwin.zip` (macOS)
-- `rustpass-x86_64-pc-windows-msvc.zip` (Windows)
-
-Extract the archive and move the `rustpass` binary to a directory in your `$PATH` (e.g., `/usr/local/bin` or `C:\Program Files`).
 
 ### Build from source
 
