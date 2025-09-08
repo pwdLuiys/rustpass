@@ -71,8 +71,10 @@ winget install --id=Rustlang.Rustup  -e
 ```
 ### FOR WINDOWS
 
-*You have to add 'rustpass' PATH on your pc.* (Default path to rustpass on windows is on C drive /Users/YOUR USER/rustpass) (After clone the repository)
-#### [How to do that?](https://superuser.com/questions/1861276/how-to-set-a-folder-to-the-path-environment-variable-in-windows-11)
+*You have to add 'rustpass' PATH on your pc.* (Default path to rustpass on windows is on C drive /Users/YOUR USER/rustpass)
+
+PS: Clone the repository first!
+#### [How to do add rustpass PATH on Windows?](https://superuser.com/questions/1861276/how-to-set-a-folder-to-the-path-environment-variable-in-windows-11)
 
 ### First, on Linux do 
 
