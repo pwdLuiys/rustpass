@@ -1,6 +1,6 @@
 # rustpass
 
-A secure, cross-platform CLI password manager inspired by Bitwarden and ProtonPass.
+A secure, cross-platform CLI password manager.
 
 ## Features
 
@@ -8,10 +8,9 @@ A secure, cross-platform CLI password manager inspired by Bitwarden and ProtonPa
 - **Strong encryption:** Vaults are encrypted using Argon2id for key derivation and XChaCha20Poly1305 for authenticated encryption.
 - **Password entries:** Add, edit, delete, and list entries (name, username, password, notes) in your selected vault.
 - **Master password security:** The master password is never stored or logged; always prompted securely using hidden input.
-- **Cross-platform:** Works on Linux, macOS, and Windows. Binaries are available for all platforms.
+- **Cross-platform:** Works on Linux and Windows. Binaries are available for all platforms.
 - **Colorful CLI:** User-friendly, colored output for commands, errors, and status messages.
 - **Safe storage:** Vaults are stored in your OS's standard data directory, isolated per user.
-- **Easy packaging:** Distributed as prebuilt binaries via GitHub Releases.
 
 ## Usage
 
