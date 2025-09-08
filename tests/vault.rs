@@ -39,6 +39,7 @@ fn test_add_entry_save_load_integrity() {
         username: "user".to_string(),
         password: "pass".to_string(),
         notes: Some("note".to_string()),
+        id: 0, // Replace with a valid id value as per Entry struct definition
     };
     vault_data.entries.push(entry.clone());
     vault_data.last_modified = Utc::now();

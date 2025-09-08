@@ -4,6 +4,7 @@ use chrono::serde::ts_seconds;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Entry {
+    pub id: u32,
     pub name: String,
     pub username: String,
     pub password: String,

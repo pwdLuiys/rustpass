@@ -61,22 +61,26 @@ enum Commands {
     },
     /// Edit an entry in the selected vault
     EditEntry {
-        /// Name of the entry to edit
         #[arg(long)]
-        name: String,
+        id: Option<u32>,
+        #[arg(long)]
+        name: Option<String>,
     },
     /// Delete an entry from the selected vault
     DeleteEntry {
-        /// Name of the entry to delete
         #[arg(long)]
-        name: String,
+        id: Option<u32>,
+        #[arg(long)]
+        name: Option<String>,
     },
     /// List all entries in the selected vault
     List,
     /// Get entry details from the selected vault
     Get {
         #[arg(long)]
-        name: String,
+        id: Option<u32>,
+        #[arg(long)]
+        name: Option<String>,
     },
     /// Save the selected vault
     Save,
@@ -153,6 +157,13 @@ fn print_usage_examples() {
     println!();
 }
 
+fn find_entry_by_id(vault: &model::VaultV1, id: u32) -> Option<&model::Entry> {
+    vault.entries.iter().find(|e| e.id == id)
+}
+fn find_entry_mut_by_id(vault: &mut model::VaultV1, id: u32) -> Option<&mut model::Entry> {
+    vault.entries.iter_mut().find(|e| e.id == id)
+}
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
@@ -192,6 +203,39 @@ fn main() -> Result<()> {
             println!("{}", "Vault created.".green());
         }
         Commands::DeleteVault { name } => {
+            if !vault_exists(&name) {
+                println!("{}", "Vault not found.".yellow());
+                return Ok(());
+            }
+            println!("{}", format!("You are about to delete vault '{}'. This action is irreversible and all data will be lost.", name).red().bold());
+            let confirm = prompt("Are you sure you want to delete this vault? (y/n): ");
+            if !confirm.trim().eq_ignore_ascii_case("y") {
+                println!("{}", "Vault deletion cancelled.".yellow());
+                return Ok(());
+            }
+            let master = prompt_password("Enter master password for this vault: ");
+            // Try to decrypt to verify password
+            let salt = match fs::read(salt_file(&name)) {
+                Ok(s) => s,
+                Err(_) => {
+                    println!("{}", "Vault not found or corrupted.".red());
+                    return Ok(());
+                }
+            };
+            let key = crypto::derive_key(&master, &salt);
+            let vault_data = match fs::read(vault_file(&name)) {
+                Ok(v) => v,
+                Err(_) => {
+                    println!("{}", "Vault not found or corrupted.".red());
+                    return Ok(());
+                }
+            };
+            let nonce = &vault_data[..24];
+            let ciphertext = &vault_data[24..];
+            if crypto::decrypt(&key, ciphertext, nonce.try_into().unwrap()).is_err() {
+                println!("{}", "Incorrect master password. Vault not deleted.".red());
+                return Ok(());
+            }
             let vf = vault_file(&name);
             let sf = salt_file(&name);
             let mut deleted = false;
@@ -293,7 +337,7 @@ fn main() -> Result<()> {
             let vault_name = match get_current_vault() {
                 Some(name) => name,
                 None => {
-                    println!("{}", "Vault not found. Use 'select-vault --name <NAME>' first.".red());
+                    println!("{}", "No vault selected. Use 'select-vault --name <NAME>' first.".red());
                     return Ok(());
                 }
             };
@@ -302,19 +346,14 @@ fn main() -> Result<()> {
                 name, username, vault_name
             ).blue().bold());
             let master = prompt_password("Master password: ");
-            let mut v = match vault::load_named(&vault_name, &master) {
-                Ok(v) => v,
-                Err(e) => {
-                    let msg = e.to_string();
-                    if msg.contains("Failed to decrypt vault") {
-                        println!("{}", "Incorrect master password or corrupted vault.".red());
-                    } else {
-                        println!("{} {}", "Error:".red(), e);
-                    }
-                    return Ok(());
-                }
-            };
+            let mut v = vault::load_named(&vault_name, &master)
+                .map_err(|e| {
+                    println!("{} {}", "Error:".red(), e);
+                    e
+                })?;
+            let next_id = v.entries.iter().map(|e| e.id).max().unwrap_or(0) + 1;
             let entry = Entry {
+                id: next_id,
                 name,
                 username,
                 password,
@@ -340,10 +379,10 @@ fn main() -> Result<()> {
                     e
                 })?;
             println!("{}", "Entries:".blue().bold());
-            for (i, entry) in v.entries.iter().enumerate() {
+            for entry in &v.entries {
                 println!(
-                    "{}: {} / {} / {}",
-                    (i + 1).to_string().cyan(),
+                    "[{}] {} / {} / {}",
+                    entry.id.to_string().cyan(),
                     entry.name.cyan(),
                     entry.username.cyan(),
                     "********".cyan()
@@ -353,7 +392,7 @@ fn main() -> Result<()> {
                 }
             }
         }
-        Commands::Get { name } => {
+        Commands::Get { id, name } => {
             let vault_name = match get_current_vault() {
                 Some(name) => name,
                 None => {
@@ -367,9 +406,17 @@ fn main() -> Result<()> {
                     println!("{} {}", "Error:".red(), e);
                     e
                 })?;
-            if let Some(entry) = vault::find_entry(&v, &name) {
+            let entry = if let Some(id) = id {
+                find_entry_by_id(&v, id)
+            } else if let Some(name) = name {
+                vault::find_entry(&v, &name)
+            } else {
+                None
+            };
+            if let Some(entry) = entry {
                 println!(
-                    "{} / {} / {}",
+                    "[{}] {} / {} / {}",
+                    entry.id.to_string().green().bold(),
                     entry.name.green().bold(),
                     entry.username.green(),
                     entry.password.green()
@@ -381,7 +428,7 @@ fn main() -> Result<()> {
                 println!("{}", "Entry not found.".yellow());
             }
         }
-        Commands::Save => {
+        Commands::EditEntry { id, name } => {
             let vault_name = match get_current_vault() {
                 Some(name) => name,
                 None => {
@@ -389,39 +436,23 @@ fn main() -> Result<()> {
                     return Ok(());
                 }
             };
+            println!("{}", format!("Editing entry in vault '{}'.", vault_name).blue().bold());
             let master = prompt_password("Master password: ");
-            let v = vault::load_named(&vault_name, &master)
+            let mut v = vault::load_named(&vault_name, &master)
                 .map_err(|e| {
                     println!("{} {}", "Error:".red(), e);
                     e
                 })?;
-            vault::save_named(&vault_name, &master, &v)?;
-            println!("{}", "Vault saved.".green());
-        }
-        Commands::EditEntry { name } => {
-            let vault_name = match get_current_vault() {
-                Some(name) => name,
-                None => {
-                    println!("{}", "No vault selected. Use 'select-vault --name <NAME>' first.".red());
-                    return Ok(());
-                }
+            let entry = if let Some(id) = id {
+                find_entry_mut_by_id(&mut v, id)
+            } else if let Some(name) = name {
+                vault::find_entry_mut(&mut v, &name)
+            } else {
+                None
             };
-            println!("{}", format!("Editing entry '{}' in vault '{}'.", name, vault_name).blue().bold());
-            let master = prompt_password("Master password: ");
-            let mut v = match vault::load_named(&vault_name, &master) {
-                Ok(v) => v,
-                Err(e) => {
-                    let msg = e.to_string();
-                    if msg.contains("Failed to decrypt vault") {
-                        println!("{}", "Incorrect master password or corrupted vault.".red());
-                    } else {
-                        println!("{} {}", "Error:".red(), e);
-                    }
-                    return Ok(());
-                }
-            };
-            if let Some(entry) = vault::find_entry_mut(&mut v, &name) {
+            if let Some(entry) = entry {
                 println!("Current values:");
+                println!("ID: {}", entry.id);
                 println!("Name: {}", entry.name);
                 println!("Username: {}", entry.username);
                 println!("Password: {}", entry.password);
@@ -441,7 +472,7 @@ fn main() -> Result<()> {
                 println!("{}", "Entry not found.".yellow());
             }
         }
-        Commands::DeleteEntry { name } => {
+        Commands::DeleteEntry { id, name } => {
             let vault_name = match get_current_vault() {
                 Some(name) => name,
                 None => {
@@ -449,29 +480,66 @@ fn main() -> Result<()> {
                     return Ok(());
                 }
             };
-            println!("{}", format!("Deleting entry '{}' from vault '{}'.", name, vault_name).blue().bold());
+            println!("{}", format!("Deleting entry from vault '{}'.", vault_name).blue().bold());
             let master = prompt_password("Master password: ");
-            let mut v = match vault::load_named(&vault_name, &master) {
-                Ok(v) => v,
-                Err(e) => {
-                    let msg = e.to_string();
-                    if msg.contains("Failed to decrypt vault") {
-                        println!("{}", "Incorrect master password or corrupted vault.".red());
+            let mut v = vault::load_named(&vault_name, &master)
+                .map_err(|e| {
+                    println!("{} {}", "Error:".red(), e);
+                    e
+                })?;
+            if let Some(id_val) = id {
+                let before = v.entries.len();
+                v.entries.retain(|e| e.id != id_val);
+                if v.entries.len() < before {
+                    v.last_modified = Utc::now();
+                    vault::save_named(&vault_name, &master, &v)?;
+                    println!("{}", "Entry deleted.".green());
+                } else {
+                    println!("{}", "Entry not found.".yellow());
+                }
+            } else if let Some(ref name_val) = name {
+                let matches: Vec<&Entry> = v.entries.iter().filter(|e| e.name.eq_ignore_ascii_case(name_val)).collect();
+                if matches.is_empty() {
+                    println!("{}", "Entry not found.".yellow());
+                } else if matches.len() > 1 {
+                    println!("{}", format!("Warning: There are {} entries with the name '{}'.", matches.len(), name_val).yellow());
+                    println!("Do you want to delete ALL of them? (y/n)");
+                    println!("Tip: To delete a specific entry, use --id <ID> instead of --name.");
+                    let confirm = prompt("");
+                    if confirm.trim().eq_ignore_ascii_case("y") {
+                        v.entries.retain(|e| !e.name.eq_ignore_ascii_case(name_val));
+                        v.last_modified = Utc::now();
+                        vault::save_named(&vault_name, &master, &v)?;
+                        println!("{}", "All matching entries deleted.".green());
                     } else {
-                        println!("{} {}", "Error:".red(), e);
+                        println!("{}", "No entries deleted.".yellow());
                     }
+                } else {
+                    v.entries.retain(|e| !e.name.eq_ignore_ascii_case(name_val));
+                    v.last_modified = Utc::now();
+                    vault::save_named(&vault_name, &master, &v)?;
+                    println!("{}", "Entry deleted.".green());
+                }
+            } else {
+                println!("{}", "Please provide either --id or --name to delete an entry.".yellow());
+            }
+        }
+        Commands::Save => {
+            let vault_name = match get_current_vault() {
+                Some(name) => name,
+                None => {
+                    println!("{}", "No vault selected. Use 'select-vault --name <NAME>' first.".red());
                     return Ok(());
                 }
             };
-            let before = v.entries.len();
-            v.entries.retain(|e| !e.name.eq_ignore_ascii_case(&name));
-            if v.entries.len() < before {
-                v.last_modified = Utc::now();
-                vault::save_named(&vault_name, &master, &v)?;
-                println!("{}", "Entry deleted.".green());
-            } else {
-                println!("{}", "Entry not found.".yellow());
-            }
+            let master = prompt_password("Master password: ");
+            let v = vault::load_named(&vault_name, &master)
+                .map_err(|e| {
+                    println!("{} {}", "Error:".red(), e);
+                    e
+                })?;
+            vault::save_named(&vault_name, &master, &v)?;
+            println!("{}", "Vault saved.".green());
         }
     }
     Ok(())
