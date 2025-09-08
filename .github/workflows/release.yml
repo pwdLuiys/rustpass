@@ -23,21 +23,31 @@ jobs:
       - name: Build project
         run: cargo build --release
 
-      - name: Package binary
+      # Linux
+      - name: Package binary (Linux)
+        if: matrix.os == 'ubuntu-latest'
         run: |
           mkdir artifacts
-          if [[ "${{ runner.os }}" == "Linux" ]]; then
-            tar -czvf artifacts/rustpass-linux-x86_64.tar.gz -C target/release rustpass
-          elif [[ "${{ runner.os }}" == "macOS" ]]; then
-            tar -czvf artifacts/rustpass-macos-x86_64.tar.gz -C target/release rustpass
-          else
-            powershell Compress-Archive -Path target/release/rustpass.exe -DestinationPath artifacts/rustpass-windows-x86_64.zip
-          fi
+          tar -czvf artifacts/rustpass-linux-x86_64.tar.gz -C target/release rustpass
+
+      # macOS
+      - name: Package binary (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          mkdir artifacts
+          tar -czvf artifacts/rustpass-macos-x86_64.tar.gz -C target/release rustpass
+
+      # Windows
+      - name: Package binary (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          mkdir artifacts
+          powershell Compress-Archive -Path target/release/rustpass.exe -DestinationPath artifacts/rustpass-windows-x86_64.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rustpass-${{ runner.os }}
+          name: rustpass-${{ matrix.os }}
           path: artifacts/*
 
   release:
