@@ -1,25 +1,27 @@
 use crate::model::VaultV1;
 use crate::crypto::{derive_key, encrypt, decrypt};
+use anyhow::Context;
 use chrono::Utc;
 use ciborium::{ser, de};
 use directories::ProjectDirs;
 use rand::RngCore;
-use anyhow::{Result, Context};
 use std::fs::{File, create_dir_all};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 
-const VAULT_FILE: &str = "vault.cbor";
-const SALT_FILE: &str = "salt.bin";
 
-fn vault_path() -> Result<PathBuf> {
+const VAULT_FILE: &str = "vault.cbor";
+#[allow(dead_code)]
+fn vault_path() -> anyhow::Result<PathBuf> {
     let proj_dirs = ProjectDirs::from("com", "rustpass", "RustPass").context("Could not determine project directory")?;
     let dir = proj_dirs.data_dir();
     create_dir_all(dir)?;
-    Ok(dir.join(VAULT_FILE))
-}
+        Ok(dir.join(VAULT_FILE))
+    }
 
-fn salt_path() -> Result<PathBuf> {
+const SALT_FILE: &str = "salt.bin";
+#[allow(dead_code)]
+fn salt_path() -> anyhow::Result<PathBuf> {
     let proj_dirs = ProjectDirs::from("com", "rustpass", "RustPass").context("Could not determine project directory")?;
     let dir = proj_dirs.data_dir();
     create_dir_all(dir)?;
@@ -27,7 +29,8 @@ fn salt_path() -> Result<PathBuf> {
 }
 
 #[allow(clippy::result_large_err)]
-pub fn init(master: &str) -> Result<()> {
+#[allow(dead_code)]
+pub fn init(master: &str) -> anyhow::Result<()> {
     let salt = {
         let mut salt = [0u8; 16];
         rand::thread_rng().fill_bytes(&mut salt);
@@ -59,7 +62,8 @@ pub fn init(master: &str) -> Result<()> {
 }
 
 #[allow(clippy::result_large_err)]
-pub fn load(master: &str) -> Result<VaultV1> {
+#[allow(dead_code)]
+pub fn load(master: &str) -> anyhow::Result<VaultV1> {
     let salt_file = salt_path()?;
     if !salt_file.exists() {
         anyhow::bail!("Vault not found. Please initialize your vault first (option 1).");
@@ -85,7 +89,8 @@ pub fn load(master: &str) -> Result<VaultV1> {
 }
 
 #[allow(clippy::result_large_err)]
-pub fn save(master: &str, vault: &VaultV1) -> Result<()> {
+#[allow(dead_code)]
+pub fn save(master: &str, vault: &VaultV1) -> anyhow::Result<()> {
     let salt_file = salt_path()?;
     let mut salt = [0u8; 16];
     File::open(salt_file)?.read_exact(&mut salt)?;
@@ -131,4 +136,40 @@ pub fn edit_entry(vault: &mut VaultV1, name: &str, new_entry: crate::model::Entr
     } else {
         false
     }
+}
+
+pub fn load_named(name: &str, master: &str) -> anyhow::Result<VaultV1> {
+    let proj_dirs = directories::ProjectDirs::from("com", "rustpass", "RustPass").unwrap();
+    let dir = proj_dirs.data_dir();
+    let salt_path = dir.join(format!("salt_{}.bin", name));
+    let vault_path = dir.join(format!("vault_{}.cbor", name));
+    let mut salt = [0u8; 16];
+    File::open(salt_path)?.read_exact(&mut salt)?;
+    let key = derive_key(master, &salt);
+    let mut vault_data = Vec::new();
+    File::open(vault_path)?.read_to_end(&mut vault_data)?;
+    let nonce = &vault_data[..24];
+    let ciphertext = &vault_data[24..];
+    let plaintext = decrypt(&key, ciphertext, nonce.try_into().unwrap())?;
+    let vault: VaultV1 = de::from_reader(plaintext.as_slice())?;
+    Ok(vault)
+}
+
+pub fn save_named(name: &str, master: &str, vault: &VaultV1) -> anyhow::Result<()> {
+    let proj_dirs = directories::ProjectDirs::from("com", "rustpass", "RustPass").unwrap();
+    let dir = proj_dirs.data_dir();
+    let salt_path = dir.join(format!("salt_{}.bin", name));
+    let vault_path = dir.join(format!("vault_{}.cbor", name));
+    let mut salt = [0u8; 16];
+    File::open(salt_path)?.read_exact(&mut salt)?;
+    let key = derive_key(master, &salt);
+    let mut buf = Vec::new();
+    ser::into_writer(vault, &mut buf)?;
+    let (ciphertext, nonce) = encrypt(&key, &buf);
+    let mut vault_data = Vec::new();
+    vault_data.extend_from_slice(&nonce);
+    vault_data.extend_from_slice(&ciphertext);
+    let mut f = File::create(vault_path)?;
+    f.write_all(&vault_data)?;
+    Ok(())
 }
