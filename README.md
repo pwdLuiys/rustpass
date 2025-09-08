@@ -58,7 +58,7 @@ A secure, cross-platform CLI password manager inspired by Bitwarden and ProtonPa
 ### FOR WINDOWS
 
 *You have to add 'rustpass' PATH on your pc.*
-#### How to do that? <a id='click here'>https://superuser.com/questions/1861276/how-to-set-a-folder-to-the-path-environment-variable-in-windows-11</a>
+#### [How to do that?](https://superuser.com/questions/1861276/how-to-set-a-folder-to-the-path-environment-variable-in-windows-11)
 
 
 ### Build from source
