@@ -1,32 +1,57 @@
-name: Release
+name: Build and Release
 
 on:
   push:
     tags:
-      - "v*"
+      - "v*"   # roda quando criar tag tipo v0.1.0
+  workflow_dispatch: # também pode rodar manual
 
 jobs:
-  dist:
-    name: Build and Package (cargo-dist)
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-      - name: Install cargo-dist
-        run: cargo install cargo-dist --locked
-      - name: Build and Package
-        run: cargo dist --no-confirm --tag ${{ github.ref_name }}
-      - name: Upload Artifacts
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build project
+        run: cargo build --release
+
+      - name: Package binary
+        run: |
+          mkdir artifacts
+          if [[ "${{ runner.os }}" == "Linux" ]]; then
+            tar -czvf artifacts/rustpass-linux-x86_64.tar.gz -C target/release rustpass
+          elif [[ "${{ runner.os }}" == "macOS" ]]; then
+            tar -czvf artifacts/rustpass-macos-x86_64.tar.gz -C target/release rustpass
+          else
+            powershell Compress-Archive -Path target/release/rustpass.exe -DestinationPath artifacts/rustpass-windows-x86_64.zip
+          fi
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rustpass-dist
-          path: dist/
-      - name: Publish Release
-        uses: taiki-e/upload-release-action@v1
+          name: rustpass-${{ runner.os }}
+          path: artifacts/*
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
         with:
-          artifacts: dist/*
-          token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
