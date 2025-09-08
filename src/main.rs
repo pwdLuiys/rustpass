@@ -476,5 +476,3 @@ fn main() -> Result<()> {
     }
     Ok(())
 }
-// Extensões para vault.rs
-// As funções load_named e save_named foram movidas para vault.rs.
